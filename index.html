@@ -334,9 +334,8 @@
             </div>
             <div class="howto-note" style="border-left-color:#c07030;background:#fff8f0">
                 ⚠️ <strong>保存容量に上限があります（重要）</strong><br><br>
-                このアプリのデータはブラウザの保存領域（localStorage）に保存されており、上限は約 <strong>5MB</strong> です。<br><br>
-                特に画像を多く追加すると、上限を超えて保存できなくなる場合があります。<br><br>
-                大切な記録はコピー機能を使ってテキストをご自身のメモアプリやドキュメントに貼り付けて保存しておくことをおすすめします。また、ブラウザのキャッシュを消去するとデータが失われますのでご注意ください。
+                このアプリのデータはブラウザの保存領域（IndexedDB）に保存されます。ブラウザのデータをすべて消去するとデータが失われます。<br><br>
+                特に画像を多く追加すると容量が増えます。大切な記録はコピー機能を使ってテキストをご自身のメモアプリやドキュメントに貼り付けて保存しておくことをおすすめします。
             </div>
         </div>
     </div>
@@ -479,15 +478,77 @@ function removeImage(slot) {
 }
 
 /* =========================================================
-   STORAGE
+   IndexedDB ── データベース接続
+   ※ localStorage の代わりに IndexedDB を使用（大容量・非同期）
    ========================================================= */
-function getReadings() {
-    try { return JSON.parse(localStorage.getItem("tarot_v3") || "[]"); }
-    catch(e) { return []; }
+const DB_NAME    = "tarotDB";   // データベース名
+const DB_VERSION = 1;           // バージョン（構造変更時は上げる）
+const STORE_NAME = "readings";  // オブジェクトストア名
+
+// DB を開く（初回は onupgradeneeded でストアを作成）
+function openDB() {
+    return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, DB_VERSION);
+
+        // 初回起動・バージョンアップ時にストアを作成
+        req.onupgradeneeded = e => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+                // keyPath: "id" でレコードを一意管理
+                db.createObjectStore(STORE_NAME, { keyPath: "id" });
+            }
+        };
+        req.onsuccess = e => resolve(e.target.result);
+        req.onerror   = e => reject(e.target.error);
+    });
 }
-function saveReadings(arr) {
-    try { localStorage.setItem("tarot_v3", JSON.stringify(arr)); }
-    catch(e) { showToast("保存容量がいっぱいです。古いデータを削除してください"); }
+
+// 全レコード取得（旧: getReadings()）
+async function getAllReadings() {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx    = db.transaction(STORE_NAME, "readonly");
+        const store = tx.objectStore(STORE_NAME);
+        const req   = store.getAll();
+        req.onsuccess = e => resolve(e.target.result);
+        req.onerror   = e => reject(e.target.error);
+    });
+}
+
+// 1件取得（旧: getReadings().find(x => x.id === id)）
+async function getReading(id) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx    = db.transaction(STORE_NAME, "readonly");
+        const store = tx.objectStore(STORE_NAME);
+        const req   = store.get(id);
+        req.onsuccess = e => resolve(e.target.result);
+        req.onerror   = e => reject(e.target.error);
+    });
+}
+
+// 保存・更新（旧: saveReadings(arr) の add/update 相当）
+async function putReading(record) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx    = db.transaction(STORE_NAME, "readwrite");
+        const store = tx.objectStore(STORE_NAME);
+        const req   = store.put(record); // 同じ id があれば上書き
+        req.onsuccess = e => resolve(e.target.result);
+        req.onerror   = e => reject(e.target.error);
+    });
+}
+
+// 1件削除（旧: saveReadings(arr.filter(...))）
+async function deleteReadingById(id) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx    = db.transaction(STORE_NAME, "readwrite");
+        const store = tx.objectStore(STORE_NAME);
+        const req   = store.delete(id);
+        req.onsuccess = () => resolve();
+        req.onerror   = e => reject(e.target.error);
+    });
 }
 
 /* =========================================================
@@ -499,8 +560,9 @@ function showPage(id) {
     window.scrollTo(0, 0);
 }
 
-function showList() {
-    renderList();
+// IndexedDB は非同期なので async に変更
+async function showList() {
+    await renderList();
     showPage("pageList");
 }
 
@@ -523,8 +585,9 @@ let editingId = null;
 /* =========================================================
    DETAIL
    ========================================================= */
-function showDetail(id) {
-    const r = getReadings().find(x => x.id === id);
+// IndexedDB から非同期で1件取得するため async に変更
+async function showDetail(id) {
+    const r = await getReading(id); // 変更: IndexedDB から取得
     if (!r) { showList(); return; }
 
     const d  = new Date(Number(r.id));
@@ -586,8 +649,9 @@ function showDetail(id) {
     showPage("pageDetail");
 }
 
-function editReading(id) {
-    const r = getReadings().find(x => x.id === id);
+// IndexedDB から非同期で1件取得するため async に変更
+async function editReading(id) {
+    const r = await getReading(id); // 変更: IndexedDB から取得
     if (!r) return;
     editingId = id;
 
@@ -621,8 +685,9 @@ function editReading(id) {
 /* =========================================================
    LIST
    ========================================================= */
-function renderList() {
-    const readings = [...getReadings()].reverse();
+// IndexedDB から非同期で全件取得するため async に変更
+async function renderList() {
+    const readings = (await getAllReadings()).reverse(); // 変更: IndexedDB から取得
     const el = document.getElementById("readingList");
     if (!readings.length) {
         el.innerHTML = `<div class="empty-state">🌿<br><br>リーディングの記録がまだありません。<br>最初の記録を残してみましょう。</div>`;
@@ -653,7 +718,8 @@ function renderList() {
 /* =========================================================
    SAVE / DELETE
    ========================================================= */
-function saveReading() {
+// IndexedDB への保存は非同期なので async に変更
+async function saveReading() {
     const title   = document.getElementById("fieldTitle").value.trim();
     const content = document.getElementById("fieldContent").value.trim();
     const result  = document.getElementById("fieldResult").value.trim();
@@ -664,7 +730,6 @@ function saveReading() {
         showToast("何か入力してから保存してください"); return;
     }
 
-    const readings = getReadings();
     const entry = {
         title, content, result, insight,
         cards,
@@ -673,24 +738,25 @@ function saveReading() {
     };
 
     if (editingId) {
-        const idx = readings.findIndex(r => r.id === editingId);
-        if (idx !== -1) readings[idx] = { ...readings[idx], ...entry };
-        saveReadings(readings);
+        // 既存レコードを取得してマージし、IndexedDB に上書き保存
+        const existing = await getReading(editingId);
+        await putReading({ ...existing, ...entry }); // 変更: IndexedDB に保存
         showToast("更新しました ✓");
         const eid = editingId;
         editingId = null;
         setTimeout(() => showDetail(eid), 400);
     } else {
-        readings.push({ id: Date.now().toString(), ...entry });
-        saveReadings(readings);
+        // 新規レコード：id はタイムスタンプ文字列
+        await putReading({ id: Date.now().toString(), ...entry }); // 変更: IndexedDB に保存
         showToast("保存しました ✓");
         setTimeout(() => showList(), 400);
     }
 }
 
-function deleteReading(id) {
+// IndexedDB からの削除は非同期なので async に変更
+async function deleteReading(id) {
     if (!confirm("このリーディングを削除しますか？")) return;
-    saveReadings(getReadings().filter(r => r.id !== id));
+    await deleteReadingById(id); // 変更: IndexedDB から削除
     showToast("削除しました");
     showList();
 }
@@ -698,8 +764,9 @@ function deleteReading(id) {
 /* =========================================================
    一括コピー
    ========================================================= */
-function copyReading(id) {
-    const r = getReadings().find(x => x.id === id);
+// IndexedDB から非同期で1件取得するため async に変更
+async function copyReading(id) {
+    const r = await getReading(id); // 変更: IndexedDB から取得
     if (!r) return;
 
     const cards = (r.cards || []).filter(c => c && c.trim());
