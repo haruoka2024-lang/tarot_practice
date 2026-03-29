@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>タロットリーディング練習帳</title>
+    <style>
+        :root {
+            --bg:      #f2f5ef;
+            --surface: #ffffff;
+            --surface2:#eef2eb;
+            --accent:  #2e6030;
+            --accent2: #4a8a4e;
+            --text:    #1a301a;
+            --text2:   #507050;
+            --border:  #c0d4bc;
+            --gold:    #5a6e20;
+            --label:   #1e4a20;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Hiragino Sans','Yu Gothic','Meiryo',sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            max-width: 600px;
+            margin: 0 auto;
+            padding-bottom: 60px;
+        }
+
+        /* ── HEADER ── */
+        .header {
+            background: var(--bg);
+            border-bottom: 2px solid var(--border);
+            padding: 14px 16px 10px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header-inner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+        .header h1 {
+            font-size: 1.12rem;
+            color: var(--label);
+            font-weight: 900;
+            letter-spacing: .06em;
+            text-align: center;
+        }
+        .btn-howto {
+            align-self: flex-end;
+            background: transparent;
+            border: 1px solid var(--accent2);
+            border-radius: 20px;
+            color: var(--accent);
+            font-size: .72rem;
+            font-weight: 700;
+            padding: 3px 11px;
+            cursor: pointer;
+            font-family: inherit;
+            letter-spacing: .04em;
+        }
+        .btn-howto:active { opacity: .7; }
+
+        /* ── 使い方モーダル ── */
+        .howto-overlay {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,.45);
+            z-index: 200;
+            align-items: flex-end;
+        }
+        .howto-overlay.open { display: flex; }
+        .howto-modal {
+            background: var(--surface);
+            width: 100%;
+            max-height: 80vh;
+            border-radius: 20px 20px 0 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .howto-header {
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+        .howto-header-title { font-size: 1rem; font-weight: 800; color: var(--label); }
+        .howto-close {
+            background: transparent; border: none;
+            font-size: 1.3rem; color: var(--text2);
+            cursor: pointer; padding: 2px 6px; line-height: 1;
+        }
+        .howto-body {
+            overflow-y: auto;
+            padding: 18px;
+            line-height: 1.75;
+            font-size: .9rem;
+            color: var(--text);
+        }
+        .howto-step {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        .howto-step-num {
+            width: 28px; height: 28px;
+            background: var(--accent);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: .8rem; font-weight: 800;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        .howto-step-body { flex: 1; }
+        .howto-step-title { font-weight: 800; color: var(--label); margin-bottom: 3px; font-size: .92rem; }
+        .howto-step-desc  { color: var(--text2); font-size: .84rem; }
+        .howto-note {
+            background: var(--surface2);
+            border-left: 3px solid var(--accent2);
+            border-radius: 0 8px 8px 0;
+            padding: 10px 14px;
+            font-size: .82rem;
+            color: var(--text2);
+            margin-top: 4px;
+        }
+
+        /* ── BUTTONS ── */
+        .btn {
+            padding: 9px 16px; border: none; border-radius: 8px;
+            cursor: pointer; font-size: .86rem; font-family: inherit;
+            transition: opacity .15s;
+        }
+        .btn:active { opacity: .7; }
+        .btn-primary   { background: var(--accent); color: #fff; flex: 1; }
+        .btn-secondary { background: #fff; color: var(--text2); border: 1px solid var(--border); }
+        .btn-green {
+            background: linear-gradient(135deg, #3a7035, #225020);
+            color: #fff; font-weight: bold; width: 100%;
+            padding: 14px; font-size: .98rem; border-radius: 12px;
+            letter-spacing: .05em;
+        }
+        .btn-danger { background: transparent; color: #a03020; border: 1px solid #c05040; padding: 6px 12px; font-size: .78rem; }
+        .btn-copy {
+            background: var(--surface2); color: var(--label);
+            border: 1px solid var(--border); font-size: .78rem;
+            padding: 6px 14px; display: flex; align-items: center; gap: 4px;
+        }
+
+        /* ── PAGES ── */
+        .page { display: none; padding: 16px; }
+        .page.active { display: block; }
+
+        /* ── LIST ── */
+        .reading-list { display: flex; flex-direction: column; gap: 10px; }
+        .reading-item {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 12px;
+            cursor: pointer;
+            transition: box-shadow .15s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .reading-item:active { box-shadow: 0 0 0 2px var(--accent2); }
+        .reading-item-body {
+            flex: 1;
+            min-width: 0;
+        }
+        .reading-item-row {
+            display: flex; align-items: baseline; gap: 8px;
+            overflow: hidden;
+        }
+        .reading-item-date   { font-size: .7rem; color: var(--text2); white-space: nowrap; flex-shrink: 0; }
+        .reading-item-title  { font-size: .9rem; font-weight: bold; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0; max-width: 45%; }
+        .reading-item-cards  { font-size: .75rem; color: var(--accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+        .reading-item-thumb {
+            width: 48px; height: 48px;
+            border-radius: 6px;
+            object-fit: cover;
+            flex-shrink: 0;
+            border: 1px solid var(--border);
+        }
+        .empty-state { text-align: center; color: var(--text2); padding: 52px 20px; font-size: .9rem; line-height: 2.2; }
+
+        /* ── FORM ── */
+        .section { margin-bottom: 22px; }
+        .section-label {
+            display: flex; align-items: center; gap: 8px;
+            font-size: .82rem; color: var(--label);
+            margin-bottom: 8px; font-weight: bold;
+        }
+        .section-icon { font-size: 1.05rem; line-height: 1; flex-shrink: 0; margin-right: -4px; }
+        .text-input {
+            width: 100%; background: var(--surface);
+            border: 1px solid var(--border); border-radius: 10px;
+            color: var(--text); padding: 11px 12px;
+            font-family: inherit; font-size: .95rem;
+        }
+        .text-input:focus {
+            outline: none; border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(46,96,48,.12);
+        }
+        .text-input::placeholder { color: var(--text2); opacity: .5; }
+        textarea.text-input { resize: vertical; min-height: 88px; line-height: 1.68; }
+
+        /* ── CARD INPUTS ── */
+        .card-inputs { display: flex; flex-direction: column; gap: 8px; }
+        .card-input-row {
+            display: flex; align-items: center; gap: 8px;
+        }
+        .card-input-label {
+            font-size: .75rem; color: var(--text2);
+            white-space: nowrap; min-width: 52px;
+            font-weight: bold;
+        }
+        .card-input-field {
+            flex: 1; background: var(--surface);
+            border: 1px solid var(--border); border-radius: 8px;
+            color: var(--text); padding: 9px 12px;
+            font-family: inherit; font-size: .9rem;
+        }
+        .card-input-field:focus {
+            outline: none; border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(46,96,48,.12);
+        }
+        .card-input-field::placeholder { color: var(--text2); opacity: .45; }
+
+        /* ── IMAGE UPLOAD ── */
+        .img-upload-wrap { margin-top: 8px; }
+        .img-upload-label {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: 8px; padding: 8px 14px;
+            font-size: .84rem; color: var(--text2);
+            cursor: pointer; transition: border-color .15s;
+        }
+        .img-upload-label:hover { border-color: var(--accent2); }
+        #fieldImage { display: none; }
+        .img-preview {
+            margin-top: 10px; border-radius: 10px; overflow: hidden;
+            border: 1px solid var(--border); position: relative;
+        }
+        .img-preview img { width: 100%; display: block; }
+        .img-preview-remove {
+            position: absolute; top: 6px; right: 6px;
+            background: rgba(0,0,0,.55); color: #fff;
+            border: none; border-radius: 20px; padding: 4px 10px;
+            font-size: .78rem; cursor: pointer;
+        }
+
+        /* ── ACTION ROW ── */
+        .action-row { display: flex; gap: 8px; margin-top: 8px; }
+
+        /* ── DETAIL ── */
+        .detail-top { display: flex; align-items: center; margin-bottom: 14px; gap: 6px; flex-wrap: wrap; }
+        .back-btn { background: transparent; border: none; color: var(--text2); font-size: 1.3rem; cursor: pointer; padding: 4px 6px; }
+        .detail-date { font-size: .74rem; color: var(--text2); }
+        .detail-actions { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+        .detail-title { font-size: 1.12rem; font-weight: bold; color: var(--text); margin-bottom: 14px; }
+        .detail-section {
+            margin-bottom: 10px; background: var(--surface);
+            border: 1px solid var(--border); border-radius: 12px; padding: 14px;
+        }
+        .detail-section-label { font-size: .76rem; color: var(--label); margin-bottom: 8px; font-weight: bold; }
+        .detail-section-text { font-size: .9rem; line-height: 1.74; white-space: pre-wrap; color: var(--text); }
+        .detail-cards { display: flex; flex-wrap: wrap; gap: 6px; }
+        .detail-card-chip {
+            background: var(--surface2); border: 1px solid var(--accent2);
+            border-radius: 20px; padding: 5px 14px;
+            font-size: .8rem; color: var(--label); font-weight: bold;
+        }
+        .detail-img { width: 100%; border-radius: 8px; display: block; margin-bottom: 10px; }
+
+        /* ── COPY BOX ── */
+        .copy-bar {
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: 10px; padding: 12px 14px; margin-bottom: 12px;
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        }
+        .copy-bar-text { font-size: .82rem; color: var(--text2); }
+
+        /* ── TOAST ── */
+        .toast {
+            position: fixed; bottom: 24px; left: 50%;
+            transform: translateX(-50%) translateY(90px);
+            background: var(--accent); color: #fff;
+            padding: 10px 26px; border-radius: 22px;
+            font-size: .86rem; transition: transform .3s ease;
+            z-index: 9999; pointer-events: none; white-space: nowrap;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+    </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+    <div class="header-inner">
+        <h1>🌿 タロットリーディング練習帳</h1>
+        <button class="btn-howto" onclick="openHowto()">使い方のポイント</button>
+    </div>
+</div>
+
+<!-- 使い方モーダル -->
+<div class="howto-overlay" id="howtoOverlay" onclick="overlayClickHowto(event)">
+    <div class="howto-modal">
+        <div class="howto-header">
+            <span class="howto-header-title">📖 使い方のポイント</span>
+            <button class="howto-close" onclick="closeHowto()">✕</button>
+        </div>
+        <div class="howto-body">
+            <div class="howto-step">
+                <div class="howto-step-num" style="background:var(--accent)">💾</div>
+                <div class="howto-step-body">
+                    <div class="howto-step-title">リーディングの記録を保存できます</div>
+                    <div class="howto-step-desc">タイトル・質問内容・選んだカード・リーディング結果・気づきをセットで記録し、「保存する」ボタンで保存できます。保存した記録は一覧から何度でも見返すことができます。</div>
+                </div>
+            </div>
+            <div class="howto-step">
+                <div class="howto-step-num" style="background:var(--accent2)">📋</div>
+                <div class="howto-step-body">
+                    <div class="howto-step-title">テキスト一括コピー機能</div>
+                    <div class="howto-step-desc">記録の詳細画面にある「コピーする」ボタンを押すと、タイトル・カード名・質問内容・リーディング結果・気づきをまとめてテキストでコピーできます。お使いのメモアプリや他のアプリに貼り付けてご活用ください。</div>
+                </div>
+            </div>
+            <div class="howto-note" style="border-left-color:#c07030;background:#fff8f0">
+                ⚠️ <strong>保存容量に上限があります（重要）</strong><br><br>
+                このアプリのデータはブラウザの保存領域（localStorage）に保存されており、上限は約 <strong>5MB</strong> です。<br><br>
+                特に画像を多く追加すると、上限を超えて保存できなくなる場合があります。<br><br>
+                大切な記録はコピー機能を使ってテキストをご自身のメモアプリやドキュメントに貼り付けて保存しておくことをおすすめします。また、ブラウザのキャッシュを消去するとデータが失われますのでご注意ください。
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- LIST PAGE -->
+<div id="pageList" class="page active">
+    <div style="margin-bottom:18px">
+        <button class="btn btn-green" onclick="showNewReading()">＋ 新しいリーディングを記録する</button>
+    </div>
+    <div id="readingList" class="reading-list"></div>
+</div>
+
+<!-- FORM PAGE -->
+<div id="pageForm" class="page">
+
+    <!-- タイトル -->
+    <div class="section">
+        <div class="section-label"><span class="section-icon">🌿</span>タイトル</div>
+        <input type="text" id="fieldTitle" class="text-input"
+               placeholder="例：仕事の方向性について">
+    </div>
+
+    <!-- ① 質問内容 -->
+    <div class="section">
+        <div class="section-label"><span class="section-icon">🌿</span>質問内容</div>
+        <textarea id="fieldContent" class="text-input"
+                  placeholder="どんな質問やテーマでリーディングをしましたか？" rows="3"></textarea>
+        <div class="img-upload-wrap" style="margin-top:8px">
+            <label class="img-upload-label" for="fieldImageContent">
+                📷 画像を追加する
+            </label>
+            <input type="file" id="fieldImageContent" accept="image/*" onchange="handleImageUpload(this,'content')" style="display:none">
+            <div id="imgPreviewContent" class="img-preview" style="display:none">
+                <img id="imgPreviewContentImg" src="" alt="プレビュー">
+                <button class="img-preview-remove" onclick="removeImage('content')">✕ 削除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ② カード（テキスト入力4枚） + 画像アップロード -->
+    <div class="section">
+        <div class="section-label"><span class="section-icon">🌿</span>選んだカード（最大4枚）</div>
+        <div class="card-inputs">
+            <div class="card-input-row">
+                <span class="card-input-label">カード 1</span>
+                <input type="text" id="card1" class="card-input-field" placeholder="カード名を入力">
+            </div>
+            <div class="card-input-row">
+                <span class="card-input-label">カード 2</span>
+                <input type="text" id="card2" class="card-input-field" placeholder="カード名を入力">
+            </div>
+            <div class="card-input-row">
+                <span class="card-input-label">カード 3</span>
+                <input type="text" id="card3" class="card-input-field" placeholder="カード名を入力">
+            </div>
+            <div class="card-input-row">
+                <span class="card-input-label">カード 4</span>
+                <input type="text" id="card4" class="card-input-field" placeholder="カード名を入力">
+            </div>
+        </div>
+        <!-- 画像アップロード -->
+        <div class="img-upload-wrap">
+            <label class="img-upload-label" for="fieldImage">
+                📷 カード画像を追加する
+            </label>
+            <input type="file" id="fieldImage" accept="image/*" onchange="handleImageUpload(this,'card')">
+            <div id="imgPreviewCard" class="img-preview" style="display:none">
+                <img id="imgPreviewCardImg" src="" alt="プレビュー">
+                <button class="img-preview-remove" onclick="removeImage('card')">✕ 削除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ③ リーディング結果 -->
+    <div class="section">
+        <div class="section-label"><span class="section-icon">🌿</span>リーディング結果</div>
+        <textarea id="fieldResult" class="text-input"
+                  placeholder="カードからどんなメッセージを受け取りましたか？" rows="5"></textarea>
+    </div>
+
+    <!-- ④ 気づき -->
+    <div class="section">
+        <div class="section-label"><span class="section-icon">🌿</span>リーディングで得た気づき</div>
+        <textarea id="fieldInsight" class="text-input"
+                  placeholder="このリーディングから何を学びましたか？" rows="4"></textarea>
+    </div>
+
+    <div class="action-row">
+        <button class="btn btn-secondary" id="cancelBtn" onclick="cancelForm()">キャンセル</button>
+        <button class="btn btn-primary" onclick="saveReading()">保存する</button>
+    </div>
+</div>
+
+<!-- DETAIL PAGE -->
+<div id="pageDetail" class="page">
+    <div id="detailContent"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   画像プレビュー用の一時データURL（①質問・②カード 別管理）
+   ========================================================= */
+let currentImageContent = null; // ①質問内容の画像
+let currentImageCard    = null; // ②カードの画像
+
+function handleImageUpload(input, slot) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        const dataUrl = e.target.result;
+        if (slot === 'content') {
+            currentImageContent = dataUrl;
+            document.getElementById("imgPreviewContentImg").src = dataUrl;
+            document.getElementById("imgPreviewContent").style.display = "block";
+        } else {
+            currentImageCard = dataUrl;
+            document.getElementById("imgPreviewCardImg").src = dataUrl;
+            document.getElementById("imgPreviewCard").style.display = "block";
+        }
+    };
+    reader.readAsDataURL(file);
+}
+
+function removeImage(slot) {
+    if (slot === 'content') {
+        currentImageContent = null;
+        document.getElementById("fieldImageContent").value = "";
+        document.getElementById("imgPreviewContentImg").src = "";
+        document.getElementById("imgPreviewContent").style.display = "none";
+    } else {
+        currentImageCard = null;
+        document.getElementById("fieldImage").value = "";
+        document.getElementById("imgPreviewCardImg").src = "";
+        document.getElementById("imgPreviewCard").style.display = "none";
+    }
+}
+
+/* =========================================================
+   STORAGE
+   ========================================================= */
+function getReadings() {
+    try { return JSON.parse(localStorage.getItem("tarot_v3") || "[]"); }
+    catch(e) { return []; }
+}
+function saveReadings(arr) {
+    try { localStorage.setItem("tarot_v3", JSON.stringify(arr)); }
+    catch(e) { showToast("保存容量がいっぱいです。古いデータを削除してください"); }
+}
+
+/* =========================================================
+   NAVIGATION
+   ========================================================= */
+function showPage(id) {
+    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+    document.getElementById(id).classList.add("active");
+    window.scrollTo(0, 0);
+}
+
+function showList() {
+    renderList();
+    showPage("pageList");
+}
+
+function showNewReading() {
+    editingId = null;
+    ["fieldTitle","fieldContent","fieldResult","fieldInsight","card1","card2","card3","card4"]
+        .forEach(id => document.getElementById(id).value = "");
+    removeImage('content');
+    removeImage('card');
+    showPage("pageForm");
+    document.getElementById("cancelBtn").onclick = cancelForm;
+}
+
+function cancelForm() {
+    editingId ? showDetail(editingId) : showList();
+}
+
+let editingId = null;
+
+/* =========================================================
+   DETAIL
+   ========================================================= */
+function showDetail(id) {
+    const r = getReadings().find(x => x.id === id);
+    if (!r) { showList(); return; }
+
+    const d  = new Date(Number(r.id));
+    const ds = `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+
+    const cards = (r.cards || []).filter(c => c && c.trim());
+    const chipsHtml = cards.length
+        ? cards.map(c => `<span class="detail-card-chip">${esc(c)}</span>`).join("")
+        : `<span style="color:var(--text2);font-size:.84rem">（未入力）</span>`;
+
+    const imgContentHtml = r.imageContent
+        ? `<img class="detail-img" src="${r.imageContent}" alt="質問内容の画像" style="margin-top:10px">`
+        : "";
+    const imgCardHtml = r.imageCard
+        ? `<img class="detail-img" src="${r.imageCard}" alt="カード画像" style="margin-top:10px">`
+        : "";
+    // 旧データ互換（imageフィールドはcardに割り当て）
+    const imgCardHtmlLegacy = (!r.imageCard && r.image)
+        ? `<img class="detail-img" src="${r.image}" alt="カード画像" style="margin-top:10px">`
+        : "";
+
+    document.getElementById("detailContent").innerHTML = `
+        <div class="detail-top">
+            <button class="back-btn" onclick="showList()">←</button>
+            <span class="detail-date">${ds}</span>
+            <div class="detail-actions">
+                <button class="btn btn-secondary" style="padding:5px 12px;font-size:.78rem" onclick="editReading('${r.id}')">編集</button>
+                <button class="btn btn-danger" onclick="deleteReading('${r.id}')">削除</button>
+            </div>
+        </div>
+
+        <!-- コピーバー -->
+        <div class="copy-bar">
+            <span class="copy-bar-text">📋 テキストを一括コピー</span>
+            <button class="btn btn-copy" onclick="copyReading('${r.id}')">コピーする</button>
+        </div>
+
+        ${r.title ? `<div class="detail-title">${esc(r.title)}</div>` : ""}
+
+        <div class="detail-section">
+            <div class="detail-section-label">🌿 質問内容</div>
+            <div class="detail-section-text">${esc(r.content || "（未入力）")}</div>
+            ${imgContentHtml}
+        </div>
+        <div class="detail-section">
+            <div class="detail-section-label">🌿 選んだカード</div>
+            <div class="detail-cards">${chipsHtml}</div>
+            ${imgCardHtml}${imgCardHtmlLegacy}
+        </div>
+        <div class="detail-section">
+            <div class="detail-section-label">🌿 リーディング結果</div>
+            <div class="detail-section-text">${esc(r.result || "（未入力）")}</div>
+        </div>
+        <div class="detail-section">
+            <div class="detail-section-label">🌿 リーディングで得た気づき</div>
+            <div class="detail-section-text">${esc(r.insight || "（未入力）")}</div>
+        </div>`;
+
+    showPage("pageDetail");
+}
+
+function editReading(id) {
+    const r = getReadings().find(x => x.id === id);
+    if (!r) return;
+    editingId = id;
+
+    document.getElementById("fieldTitle").value   = r.title   || "";
+    document.getElementById("fieldContent").value = r.content || "";
+    document.getElementById("fieldResult").value  = r.result  || "";
+    document.getElementById("fieldInsight").value = r.insight || "";
+
+    const cards = r.cards || [];
+    ["card1","card2","card3","card4"].forEach((fid, i) => {
+        document.getElementById(fid).value = cards[i] || "";
+    });
+
+    // 画像プレビュー復元
+    if (r.imageContent) {
+        currentImageContent = r.imageContent;
+        document.getElementById("imgPreviewContentImg").src = r.imageContent;
+        document.getElementById("imgPreviewContent").style.display = "block";
+    } else { removeImage('content'); }
+
+    if (r.imageCard) {
+        currentImageCard = r.imageCard;
+        document.getElementById("imgPreviewCardImg").src = r.imageCard;
+        document.getElementById("imgPreviewCard").style.display = "block";
+    } else { removeImage('card'); }
+
+    showPage("pageForm");
+    document.getElementById("cancelBtn").onclick = () => showDetail(id);
+}
+
+/* =========================================================
+   LIST
+   ========================================================= */
+function renderList() {
+    const readings = [...getReadings()].reverse();
+    const el = document.getElementById("readingList");
+    if (!readings.length) {
+        el.innerHTML = `<div class="empty-state">🌿<br><br>リーディングの記録がまだありません。<br>最初の記録を残してみましょう。</div>`;
+        return;
+    }
+    el.innerHTML = readings.map(r => {
+        const d  = new Date(Number(r.id));
+        const ds = `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        const ttl     = r.title || "（タイトルなし）";
+        const preview = (r.content || "").replace(/\n/g, " ").trim().substring(0, 40);
+        const thumbHtml = r.imageContent
+            ? `<img class="reading-item-thumb" src="${r.imageContent}" alt="">`
+            : "";
+        return `
+            <div class="reading-item" onclick="showDetail('${r.id}')">
+                <div class="reading-item-body">
+                    <div class="reading-item-row">
+                        <span class="reading-item-date">${ds}</span>
+                        <span class="reading-item-title">${esc(ttl)}</span>
+                        <span class="reading-item-cards">${esc(preview)}</span>
+                    </div>
+                </div>
+                ${thumbHtml}
+            </div>`;
+    }).join("");
+}
+
+/* =========================================================
+   SAVE / DELETE
+   ========================================================= */
+function saveReading() {
+    const title   = document.getElementById("fieldTitle").value.trim();
+    const content = document.getElementById("fieldContent").value.trim();
+    const result  = document.getElementById("fieldResult").value.trim();
+    const insight = document.getElementById("fieldInsight").value.trim();
+    const cards   = ["card1","card2","card3","card4"].map(id => document.getElementById(id).value.trim());
+
+    if (!title && !content && !result && !insight && cards.every(c => !c)) {
+        showToast("何か入力してから保存してください"); return;
+    }
+
+    const readings = getReadings();
+    const entry = {
+        title, content, result, insight,
+        cards,
+        imageContent: currentImageContent || null,
+        imageCard:    currentImageCard    || null,
+    };
+
+    if (editingId) {
+        const idx = readings.findIndex(r => r.id === editingId);
+        if (idx !== -1) readings[idx] = { ...readings[idx], ...entry };
+        saveReadings(readings);
+        showToast("更新しました ✓");
+        const eid = editingId;
+        editingId = null;
+        setTimeout(() => showDetail(eid), 400);
+    } else {
+        readings.push({ id: Date.now().toString(), ...entry });
+        saveReadings(readings);
+        showToast("保存しました ✓");
+        setTimeout(() => showList(), 400);
+    }
+}
+
+function deleteReading(id) {
+    if (!confirm("このリーディングを削除しますか？")) return;
+    saveReadings(getReadings().filter(r => r.id !== id));
+    showToast("削除しました");
+    showList();
+}
+
+/* =========================================================
+   一括コピー
+   ========================================================= */
+function copyReading(id) {
+    const r = getReadings().find(x => x.id === id);
+    if (!r) return;
+
+    const cards = (r.cards || []).filter(c => c && c.trim());
+    const lines = [];
+
+    if (r.title)      lines.push(`【タイトル】\n${r.title}`);
+    if (cards.length) lines.push(`【カード】\n${cards.join(" / ")}`);
+    if (r.content)    lines.push(`【質問内容】\n${r.content}`);
+    if (r.result)     lines.push(`【リーディング結果】\n${r.result}`);
+    if (r.insight)    lines.push(`【気づき】\n${r.insight}`);
+
+    const text = lines.join("\n\n");
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text)
+            .then(() => showToast("コピーしました ✓"))
+            .catch(() => fallbackCopy(text));
+    } else {
+        fallbackCopy(text);
+    }
+}
+
+function fallbackCopy(text) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.cssText = "position:fixed;opacity:0;top:0;left:0";
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    try {
+        document.execCommand("copy");
+        showToast("コピーしました ✓");
+    } catch(e) {
+        showToast("コピーに失敗しました");
+    }
+    document.body.removeChild(ta);
+}
+
+/* =========================================================
+   UTILS
+   ========================================================= */
+function esc(s) {
+    return String(s)
+        .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function pad(n) { return String(n).padStart(2,"0"); }
+function showToast(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 2200);
+}
+
+/* =========================================================
+   使い方モーダル
+   ========================================================= */
+function openHowto() {
+    document.getElementById("howtoOverlay").classList.add("open");
+}
+function closeHowto() {
+    document.getElementById("howtoOverlay").classList.remove("open");
+}
+function overlayClickHowto(e) {
+    if (e.target === document.getElementById("howtoOverlay")) closeHowto();
+}
+
+/* =========================================================
+   INIT
+   ========================================================= */
+showList();
+</script>
+</body>
+</html>
